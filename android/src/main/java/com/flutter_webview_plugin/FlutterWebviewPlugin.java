@@ -1,16 +1,17 @@
 package com.flutter_webview_plugin;
 
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
+import android.os.Build;
 import android.view.Display;
-import android.webkit.WebStorage;
-import android.widget.FrameLayout;
 import android.webkit.CookieManager;
 import android.webkit.ValueCallback;
-import android.os.Build;
+import android.webkit.WebStorage;
+import android.widget.FrameLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,12 +26,15 @@ import io.flutter.plugin.common.PluginRegistry;
  * FlutterWebviewPlugin
  */
 public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.ActivityResultListener {
-    private Activity activity;
+    @SuppressLint("StaticFieldLeak")
+    static Activity activity;
     private WebviewManager webViewManager;
     private Context context;
     static MethodChannel channel;
     private static final String CHANNEL_NAME = "flutter_webview_plugin";
     private static final String JS_CHANNEL_NAMES_FIELD = "javascriptChannelNames";
+
+    static List<String> interceptScheme;
 
     public static void registerWith(PluginRegistry.Registrar registrar) {
         if (registrar.activity() != null) {
@@ -42,7 +46,7 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
     }
 
     FlutterWebviewPlugin(Activity activity, Context context) {
-        this.activity = activity;
+        FlutterWebviewPlugin.activity = activity;
         this.context = context;
     }
 
@@ -128,6 +132,10 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
         boolean geolocationEnabled = call.argument("geolocationEnabled");
         boolean debuggingEnabled = call.argument("debuggingEnabled");
         boolean ignoreSSLErrors = call.argument("ignoreSSLErrors");
+
+        if (call.hasArgument("interceptScheme")) {
+            interceptScheme = call.argument("interceptScheme");
+        }
 
         if (webViewManager == null || webViewManager.closed == true) {
             Map<String, Object> arguments = (Map<String, Object>) call.arguments;
@@ -226,6 +234,7 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
 
     /**
      * Checks if can navigate forward
+     *
      * @param result
      */
     private void canGoForward(MethodChannel.Result result) {
